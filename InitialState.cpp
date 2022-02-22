@@ -23,8 +23,10 @@ void InitialState::run(int argc, char* argv[]) {
     if (argc > 1) {
         
         targetFile = argv[1];
-        if (argc > 2) {
-            std::cout << AnsiCodes::yellow << "Warning: More than one file was entered. Only the first entry will be selected." << AnsiCodes::reset << std::endl;
+        for (int i = 2; i < argc; i++){
+            // for filepaths containing spaces. All args need to be appended with spaces between.
+            targetFile.append(" ");
+            targetFile.append(argv[i]);
         }
 
         File file(targetFile);

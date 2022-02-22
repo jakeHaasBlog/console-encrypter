@@ -16,7 +16,7 @@ void QueryFileState::run() {
     std::string input;
     while (true) {
         std::cout << "Enter the filepath for the desired file to encrypt or decrypt: " << AnsiCodes::cyan;
-        std::cin >> input;
+        std::getline(std::cin, input);
         std::cout << AnsiCodes::reset;
 
         if (input == InitialState::exitCode) {
