@@ -32,8 +32,7 @@ Note that the name and location of the file does not matter at all to this progr
 ** Note that I am not a cyber-security expert! This encryption uses some basic encrytion techniques that I read about online but is not secure. I did not follow any specific encryption standard or encryption algorithms, this is just a fun side-project that I put together over a weekend.
 
 Known bugs:
-- A file that is encrypted on Windows cannot be decrypted on Unix
-- A file that is encrypted on Unix cannot be decrypted on Windows
+- none
 
 Features that may be added in the future!
 - Write a message to yourself when locking a file, then be able to read it before unlocking the file.
