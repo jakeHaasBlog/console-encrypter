@@ -4,6 +4,8 @@
 #include <fstream>
 #include <filesystem>
 
+#include "ConsistantRand.h"
+
 const char FileHeader::correctIncryptionSignature[inscriptionSignatureLength] = "###@@@* This file is encrypted using <The Simple File Encryption Program> it can only be decrypted using the correct password *@@@###     e67yed67hcd667d8vct6t7ydc867yvd8ucx5r6y7vfct7y3dexctf66t7y8ui";
 const char FileHeader::correctValidation[fileValidatorLength] = "vf6@y&jdcf6gy7,u!ed5f6g7$j9soj!!x.gy@e5fd 4g67h8j/5r4s5ud67vguidt56v$8egyhjcu567$93\\nxtd7djt5e/678d";
 
@@ -172,7 +174,7 @@ bool File::checkPassword(const std::string& password) {
 
 char File::rollValue(char original, bool forward, long int itteration, const std::string& password) {
 
-    //srand(itteration);
+    //c_srand(itteration);
     long int delta = password[itteration % (password.size())] * 9342;
 
     delta += itteration;
@@ -180,7 +182,7 @@ char File::rollValue(char original, bool forward, long int itteration, const std
     delta += itteration * delta;
     delta += itteration % 4700;
     delta += itteration % 640;
-    //delta += password[(itteration + rand()) % (password.size())]; // would be nice, but is pretty expensive
+    //delta += password[(itteration + c_rand()) % (password.size())]; // would be nice, but is pretty expensive
 
     delta += itteration / 2;
     delta += itteration / 3;
@@ -221,20 +223,20 @@ void File::rollValuesInRange(long int begin, long int end, int itterationOffset,
 
 std::string File::scramblePassword(const std::string& password) {
 
-    srand(password[0]);
+    c_srand(password[0]);
     char scramble[1000];
     for (int i = 0; i < 1000; i++) {
         scramble[i] = password[i % password.size()];
-        scramble[i] += rand();
+        scramble[i] += c_rand();
     }
 
-    srand((password[0] + password[1]) * 3);
+    c_srand((password[0] + password[1]) * 3);
     char x;
     int swapI;
     int swapJ;
     for (int i = 0; i < 10000; i++) {
-        swapI = rand() % 1000;
-        swapJ = rand() % 1000;
+        swapI = c_rand() % 1000;
+        swapJ = c_rand() % 1000;
 
         x = scramble[swapI];
         scramble[swapI] = scramble[swapJ];
@@ -275,7 +277,7 @@ std::string File::scramblePassword(const std::string& password) {
     }
 
     for (int i = 0; i < 10000; i++) {
-        subScramble(rand() % 1000, rand() % 1000, scramble, password);
+        subScramble(c_rand() % 1000, c_rand() % 1000, scramble, password);
     }
 
     for (int i = 0; i < 1000; i++) {
@@ -298,10 +300,10 @@ void File::subScramble(int a, int b, char* scramble, const std::string& password
 
     for (int i = 0; i < password.size(); i++) {
 
-        srand(password[i]);
+        c_srand(password[i]);
 
         for (int j = a; j < b; j++) {
-            scramble[j] += rand() * i;
+            scramble[j] += c_rand() * i;
         }
     }
 
