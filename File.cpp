@@ -46,13 +46,14 @@ void File::readFileLength() {
 
 void File::readHeader() {
     // if the file is not long enough to contain the header, than it can't be encripted
-    if (fileLength <= fileValidatorLength + inscriptionSignatureLength) {
+    if (fileLength <= fileValidatorLength + inscriptionSignatureLength + saltLength) {
         _isEncrypted = false;
         return;
     }
 
-    stream.seekg(fileLength - inscriptionSignatureLength - fileValidatorLength, std::ios::beg);
+    stream.seekg(fileLength - inscriptionSignatureLength - fileValidatorLength - saltLength, std::ios::beg);
     stream.read(&header.fileValidator[0], fileValidatorLength);
+    stream.read(&header.salt[0], saltLength);
     stream.read(&header.incryptionSignature[0], inscriptionSignatureLength);
     stream.seekg(0, std::ios::beg);
 
@@ -84,11 +85,18 @@ std::string File::getFilepath() {
 
 bool File::encryptWithPassword(const std::string& password,  const std::function<void(long int currentBytesUpdated, long int totalFilesize)>& callback) {
 
-    std::string scrambledPassword = scramblePassword(password);
+    // salt the password forwards
+    generateSalt();
+    std::string saltyPass = password;
+    applySalt(saltyPass, header.salt);
+
+    // hash the pass
+    std::string scrambledPassword = scramblePassword(saltyPass);
 
     // --- add the header to the end of the file
     stream.seekp(fileLength, std::ios::beg);
     stream.write(&FileHeader::correctValidation[0], fileValidatorLength);
+    stream.write(&header.salt[0], saltLength);
     stream.write(&FileHeader::correctIncryptionSignature[0], inscriptionSignatureLength);
 
     readFileLength();
@@ -97,15 +105,15 @@ bool File::encryptWithPassword(const std::string& password,  const std::function
     int begin = 0;
     int end = 0;
 
-    while (end != fileLength - inscriptionSignatureLength) {
+    while (end != fileLength - inscriptionSignatureLength - saltLength) {
 
         begin = end;
         end = end + bufferingSize;
-        if (end > fileLength - inscriptionSignatureLength)
-            end = fileLength - inscriptionSignatureLength;
+        if (end > fileLength - inscriptionSignatureLength - saltLength)
+            end = fileLength - inscriptionSignatureLength - saltLength;
 
         rollValuesInRange(begin, end, 0, true, scrambledPassword);
-        callback(end, fileLength - inscriptionSignatureLength);
+        callback(end, fileLength - inscriptionSignatureLength - saltLength);
     }
 
     return true;
@@ -122,7 +130,11 @@ bool File::decrypt(const std::string& password, const std::function<void(long in
         return false;
     }
 
-    std::string scrambledPassword = scramblePassword(password);
+    std::string unsaltedPass = password;
+    applySalt(unsaltedPass, header.salt);
+
+    // hash pass to compare with stored hash
+    std::string scrambledPassword = scramblePassword(unsaltedPass);
     
 
     // The file is valid, encrypted, and the correct password was given. Now decrypt.
@@ -144,7 +156,7 @@ bool File::decrypt(const std::string& password, const std::function<void(long in
     }
 
     // remove the header from the file
-    truncateFile(inscriptionSignatureLength + fileValidatorLength);
+    truncateFile(inscriptionSignatureLength + fileValidatorLength + saltLength);
 
     return true;
 }
@@ -160,10 +172,12 @@ void File::truncateFile(int bytes) {
 
 bool File::checkPassword(const std::string& password) {
 
-    std::string scrambledPassword = scramblePassword(password);
+    std::string unsaltedPass = password;
+    applySalt(unsaltedPass, header.salt);
+    std::string scrambledPassword = scramblePassword(unsaltedPass);
 
     for (int i = 0; i < fileValidatorLength - 1; i++) {
-        if (rollValue(header.fileValidator[i], false, fileLength - fileValidatorLength - inscriptionSignatureLength + i, scrambledPassword) != FileHeader::correctValidation[i]) {
+        if (rollValue(header.fileValidator[i], false, fileLength - fileValidatorLength - inscriptionSignatureLength - saltLength + i, scrambledPassword) != FileHeader::correctValidation[i]) {
             return false;
         }
     }
@@ -309,3 +323,24 @@ void File::subScramble(int a, int b, char* scramble, const std::string& password
 
 }
 
+
+void File::generateSalt() {
+
+    std::mt19937 rng;
+    rng.seed(time(NULL));
+
+    for (int i = 0; i < saltLength; i++) {
+        header.salt[i] = rng() % 255;
+    }
+
+    header.salt[saltLength - 1] = '\0';
+
+}
+
+void File::applySalt(std::string& target, const std::string& salt) {
+
+    for (int i = 0; i < target.length(); i++) {
+        target[i] = rollValue(target[i], true, i, salt);
+    }
+
+}

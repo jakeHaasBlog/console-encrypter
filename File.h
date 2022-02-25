@@ -6,6 +6,7 @@
 
 #define inscriptionSignatureLength 200
 #define fileValidatorLength 100
+#define saltLength 30
 
 #define bufferingSize 3000000
 
@@ -18,7 +19,9 @@ struct FileHeader {
     static const char correctValidation[fileValidatorLength];
 
     char incryptionSignature[inscriptionSignatureLength]; // this should always be the first 200 bytes of the file, just shows that this is indeed an encrypted file
+    char salt[saltLength]; // this will be randomized when encrypting and used to roll the password before encryption and decryption
     char fileValidator[fileValidatorLength]; // this will be rolled forward during encryption and backward to show the correct key was used
+
 };
 
 
@@ -48,6 +51,9 @@ private:
 
     char rollValue(char original, bool forward, long int itteration, const std::string& password);
     void rollValuesInRange(long int begin, long int end, int itterationOffset, bool forward, const std::string& password);
+
+    void generateSalt();
+    void applySalt(std::string& target, const std::string& salt);
 
 private:
     std::fstream stream;
